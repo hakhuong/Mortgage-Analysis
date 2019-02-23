@@ -1,0 +1,114 @@
+---
+title: "Mortgage Market EDA"
+output: html_notebook
+---
+
+```{r include = FALSE}
+# Clear environment of variables and functions
+rm(list = ls(all = TRUE)) 
+
+# Clear environmet of packages
+if(is.null(sessionInfo()$otherPkgs) == FALSE)lapply(paste("package:", names(sessionInfo()$otherPkgs), sep=""), detach, character.only = TRUE, unload = TRUE)
+```
+
+#Load Packages 
+
+```{r}
+library(readr)
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+library(gridExtra)
+```
+
+#Load and manipulate data 
+```{r}
+#Load Data 
+mld <- read_csv("MLD Data File-1.csv")
+
+```
+
+```{r}
+#Data Manipulation 
+names(mld) = c("married", "guideline", "obligation", "black", "hispanic", "male", "approve", "loan") 
+
+mld$male <- as.numeric(mld$male)
+mld$married <- as.numeric(mld$married)
+
+summary(mld)
+```
+
+#Sample Selection Criteria 
+
+* There are 12 NAs in Male and 3 NA in Married. Given our data set of almost 2,000 observation, we decided to remove these observations.
+* There are values of 666 in "Guideline", which is an impossible value. We decided to remove such observations as well. 
+
+```{r include = FALSE}
+#Data Manipulation 
+#Remove NAs and impossible values 
+mld<-mld %>% 
+  filter(guideline != 666) %>% 
+  filter(!is.na(married)) %>% 
+  filter(!is.na(male))
+
+#Rename Race 
+mld$race <- ifelse((mld$black == 0) & (mld$hispanic == 0), "Non-Hispanic White", 
+                   ifelse((mld$black == 1) & (mld$hispanic == 0), "Non-Hispanic Black", "Hispanic"))
+
+#Rename Gender
+mld$gender <-ifelse(mld$male == 1, "Male", "Female")
+mld$marital <-ifelse(mld$married== 1, "Married", "Unmarried")
+
+mld <- mld %>% select(-black, -hispanic, -male, -married)
+
+#Change variables levels' name:
+mld$approve <- ifelse(mld$approve == 1, "Yes", "No")
+mld$guideline <- ifelse(mld$guideline == 1, "Yes", "No")
+```
+
+#Descriptive statistics
+
+##All observations analysis 
+```{r}
+#Categorical Variables 
+bar_graph <- function(x, xtitle) { 
+  ggplot(mld, aes(x)) + geom_bar() +
+    theme_bw() + xlab(xtitle)+
+    theme(panel.border = element_blank(), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank())
+}
+grid.arrange(
+bar_graph(mld$marital, "Marital Status"),
+bar_graph(mld$approve, "Approval Rate"),
+bar_graph(mld$race, "Race") + coord_flip(), 
+bar_graph(mld$gender, "Gender"))
+
+#Continuous Variables
+par(mfrow = c(1,2))
+hist(mld$loan)
+hist(mld$obligation)
+
+```
+
+
+##Descriptive statistics by race/ethnicity
+```{r}
+kable(
+  mld %>% 
+    tabyl(race, approve) %>% 
+    adorn_totals(where = "col") %>%
+    adorn_percentages(denominator="row")%>%
+      adorn_pct_formatting(digits = 0 ),
+      digits = 2,
+      format = "html",
+      align = c("l","c","c"), 
+  caption = "Approval Rate by Race/Ethnicity"
+    )%>%
+  kable_styling(full_width = F)
+
+mld%>% group_by(race) %>% summarise(mean_loan = mean(loan), 
+                                    mean_obl = mean(obligation))
+  
+```
+
