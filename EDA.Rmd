@@ -1,6 +1,8 @@
 ---
 title: "Mortgage Market EDA"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r include = FALSE}
@@ -11,24 +13,21 @@ rm(list = ls(all = TRUE))
 if(is.null(sessionInfo()$otherPkgs) == FALSE)lapply(paste("package:", names(sessionInfo()$otherPkgs), sep=""), detach, character.only = TRUE, unload = TRUE)
 ```
 
-#Load Packages 
-
-```{r}
+```{r include = FALSE}
 library(readr)
 library(tidyverse)
 library(janitor)
 library(kableExtra)
 library(gridExtra)
+library(ggridges)
 ```
 
-#Load and manipulate data 
-```{r}
+```{r include = FALSE}
 #Load Data 
 mld <- read_csv("MLD Data File-1.csv")
-
 ```
 
-```{r}
+```{r include = FALSE}
 #Data Manipulation 
 names(mld) = c("married", "guideline", "obligation", "black", "hispanic", "male", "approve", "loan") 
 
@@ -42,6 +41,7 @@ summary(mld)
 
 * There are 12 NAs in Male and 3 NA in Married. Given our data set of almost 2,000 observation, we decided to remove these observations.
 * There are values of 666 in "Guideline", which is an impossible value. We decided to remove such observations as well. 
+* There are loans that is more than 100% of the purchases price. We decided to remove these observations. 
 
 ```{r include = FALSE}
 #Data Manipulation 
@@ -49,7 +49,9 @@ summary(mld)
 mld<-mld %>% 
   filter(guideline != 666) %>% 
   filter(!is.na(married)) %>% 
-  filter(!is.na(male))
+  filter(!is.na(male)) %>% 
+  filter(loan<=1)%>% 
+  mutate(loan = loan *100)
 
 #Rename Race 
 mld$race <- ifelse((mld$black == 0) & (mld$hispanic == 0), "Non-Hispanic White", 
@@ -69,7 +71,31 @@ mld$guideline <- ifelse(mld$guideline == 1, "Yes", "No")
 #Descriptive statistics
 
 ##All observations analysis 
-```{r}
+
+```{r echo = FALSE}
+count_table <- function(x){
+  x<-enquo(x)
+  kable(
+  mld %>% 
+    tabyl(!!x) %>% 
+    adorn_totals(where = "row") %>%
+      adorn_pct_formatting(digits = 0 ),
+      digits = 2,
+      format = "html",
+      align = c("l","c","c")
+    )%>%
+  kable_styling(full_width = F)
+}
+count_table(marital)
+count_table(gender)
+count_table(race)
+count_table(approve)
+count_table(guideline)
+
+```
+
+
+```{r echo = FALSE}
 #Categorical Variables 
 bar_graph <- function(x, xtitle) { 
   ggplot(mld, aes(x)) + geom_bar() +
@@ -81,19 +107,29 @@ bar_graph <- function(x, xtitle) {
 grid.arrange(
 bar_graph(mld$marital, "Marital Status"),
 bar_graph(mld$approve, "Approval Rate"),
-bar_graph(mld$race, "Race") + coord_flip(), 
-bar_graph(mld$gender, "Gender"))
+bar_graph(mld$guideline, "Guideline"), 
+bar_graph(mld$gender, "Gender"),bar_graph(mld$race, "Race") + coord_flip())
+```
 
+* There are twice more married applicants than unmarried applicants. 
+* Most of the time, the application is approved (88% approval rate).
+* Most application satisfied guidelines (91% of the time). 
+* Most applicants are male (81% male).
+* Most applicants are non-Hispanic White (85% White). 
+
+```{r echo = FALSE}
 #Continuous Variables
 par(mfrow = c(1,2))
 hist(mld$loan)
 hist(mld$obligation)
-
 ```
 
 
+* Most loans is at 70-80% of the item purchase price. 
+* Most other obligations is at 30-40% of the loan-applicant's total income. 
+
 ##Descriptive statistics by race/ethnicity
-```{r}
+```{r fig.height=4, echo = FALSE}
 kable(
   mld %>% 
     tabyl(race, approve) %>% 
@@ -107,8 +143,24 @@ kable(
     )%>%
   kable_styling(full_width = F)
 
-mld%>% group_by(race) %>% summarise(mean_loan = mean(loan), 
-                                    mean_obl = mean(obligation))
+kable(mld %>% group_by(race) %>% 
+  summarize("Loan (mean)" = mean(loan), 
+            "Loan (sd)" = sd(loan),
+            "Other Obligation (mean)" = mean(obligation), 
+            "Other Obligation (sd)" = sd(obligation)))%>%
+  kable_styling(full_width = F)
+
+##a + geom_density(aes(fill = race[race=="Hispanic"]), alpha=0.2)
+#a + geom_density(aes(fill = ez), alpha=0.2)
+
+grid.arrange(
+ggplot(mld, aes(loan, fill = race)) + geom_histogram(bins  = 30),
+ggplot(mld, aes(obligation, fill = race)) + geom_histogram(bins = 30))
+
+grid.arrange(
+ggplot(mld, aes(marital, fill = race)) + geom_bar(position = "dodge"),
+ggplot(mld, aes(approve, fill = race)) + geom_bar(position = "dodge"),
+ggplot(mld, aes(guideline, fill = race)) + geom_bar(position="dodge"))
   
 ```
 
