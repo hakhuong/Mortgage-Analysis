@@ -72,6 +72,13 @@ mld$guideline <- ifelse(mld$guideline == 1, "Yes", "No")
 
 ##All observations analysis 
 
+* There are twice more married applicants than unmarried applicants. 
+* Most of the time, the application is approved (88% approval rate).
+* Most application satisfied guidelines (91% of the time). 
+* Most applicants are male (81% male).
+* Most applicants are non-Hispanic White (85% White). 
+
+
 ```{r echo = FALSE}
 count_table <- function(x){
   x<-enquo(x)
@@ -111,11 +118,9 @@ bar_graph(mld$guideline, "Guideline"),
 bar_graph(mld$gender, "Gender"),bar_graph(mld$race, "Race") + coord_flip())
 ```
 
-* There are twice more married applicants than unmarried applicants. 
-* Most of the time, the application is approved (88% approval rate).
-* Most application satisfied guidelines (91% of the time). 
-* Most applicants are male (81% male).
-* Most applicants are non-Hispanic White (85% White). 
+* Most loans is at 70-80% of the item purchase price. 
+* Most other obligations is at 30-40% of the loan-applicant's total income. 
+
 
 ```{r echo = FALSE}
 #Continuous Variables
@@ -124,12 +129,43 @@ hist(mld$loan)
 hist(mld$obligation)
 ```
 
-
-* Most loans is at 70-80% of the item purchase price. 
-* Most other obligations is at 30-40% of the loan-applicant's total income. 
-
 ##Descriptive statistics by race/ethnicity
+
+* Distribution of loan/purchase price is hightly skewed left. Most people apply for high proportion of loan over price. 
+    + Hispanic and Non-Hispanic Black have higher average loan amount application. 
+* Across races/ethnicities, people have similar percentage of other obligations over income (about 32-35% of income). 
+
 ```{r fig.height=4, echo = FALSE}
+
+kable(mld %>% group_by(race) %>% 
+  summarize("Loan (mean)" = mean(loan), 
+            "Loan (median)" = median(loan),
+            "Loan (sd)" = sd(loan),
+            "Other Oblig.(mean)" = mean(obligation), 
+            "Other Oblig.(median)" = median(obligation),
+            "Other Oblig. (sd)" = sd(obligation)), 
+  caption = "Descriptive Table for Continuous variables", 
+  digit = 1)%>%
+  kable_styling(full_width = F)
+
+grid.arrange(
+  ggplot(mld, aes(loan)) + geom_density(aes(color = race)),
+  ggplot(mld, aes(obligation)) + geom_density(aes(color = race)))
+
+
+
+grid.arrange(
+ggplot(mld, aes(marital, fill = race)) + geom_bar(position = "dodge"),
+ggplot(mld, aes(approve, fill = race)) + geom_bar(position = "dodge"),
+ggplot(mld, aes(guideline, fill = race)) + geom_bar(position="dodge"))
+  
+```
+
+* Most White applicants have their application accepted (91%). Black people has the lowest acceptance rate (67%).
+* White applicants also have the highest percentage of applications that satisfy the guidelines, while black applicant have the lowest percentage of applications that satisfy the guidelines. 
+* Black has the highest female applicant and married applicant percentage, compared to the other 2 races/ethnicities. 
+
+```{r echo = FALSE, message = FALSE, fig.height =5, fig.width=10 }
 kable(
   mld %>% 
     tabyl(race, approve) %>% 
@@ -143,24 +179,25 @@ kable(
     )%>%
   kable_styling(full_width = F)
 
-kable(mld %>% group_by(race) %>% 
-  summarize("Loan (mean)" = mean(loan), 
-            "Loan (sd)" = sd(loan),
-            "Other Obligation (mean)" = mean(obligation), 
-            "Other Obligation (sd)" = sd(obligation)))%>%
-  kable_styling(full_width = F)
-
-##a + geom_density(aes(fill = race[race=="Hispanic"]), alpha=0.2)
-#a + geom_density(aes(fill = ez), alpha=0.2)
-
+prop_graph<-function(x, y){
+  x<-enquo(x)
+  y<-enquo(y)
+  mld %>% group_by(!!x)%>%
+  count(!!y, !!x) %>% 
+  mutate(prop = prop.table(n)) %>%
+  ggplot(aes(x = !!x, y = prop, fill = !!y))+stat_summary(geom="bar", position = "dodge") + ylab("Probability")+
+    theme_bw() + theme(panel.border = element_blank(), 
+                       panel.grid.major = element_blank(),
+                       panel.grid.minor = element_blank(),
+                       axis.ticks.x=element_blank(), 
+                       axis.text.x = element_text(angle=90, hjust=1))
+}
 grid.arrange(
-ggplot(mld, aes(loan, fill = race)) + geom_histogram(bins  = 30),
-ggplot(mld, aes(obligation, fill = race)) + geom_histogram(bins = 30))
+  prop_graph(race, marital),
+prop_graph(race, gender),
+prop_graph(race, approve),
+prop_graph(race, guideline),ncol=4)
 
-grid.arrange(
-ggplot(mld, aes(marital, fill = race)) + geom_bar(position = "dodge"),
-ggplot(mld, aes(approve, fill = race)) + geom_bar(position = "dodge"),
-ggplot(mld, aes(guideline, fill = race)) + geom_bar(position="dodge"))
-  
 ```
+
 
