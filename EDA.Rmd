@@ -1,8 +1,12 @@
 ---
 title: "Mortgage Market EDA"
+author: Andrea Hellebust, Hannah Khuong, Yifan Xiang
 output:
   html_document:
     df_print: paged
+  word_document: default
+  pdf_document: default
+  always_allow_html: yes
 ---
 
 ```{r include = FALSE}
