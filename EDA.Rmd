@@ -135,7 +135,7 @@ hist(mld$obligation)
     + Hispanic and Non-Hispanic Black have higher average loan amount application. 
 * Across races/ethnicities, people have similar percentage of other obligations over income (about 32-35% of income). 
 
-```{r fig.height=4, echo = FALSE}
+```{r echo = FALSE}
 
 kable(mld %>% group_by(race) %>% 
   summarize("Loan (mean)" = mean(loan), 
@@ -165,7 +165,7 @@ ggplot(mld, aes(guideline, fill = race)) + geom_bar(position="dodge"))
 * White applicants also have the highest percentage of applications that satisfy the guidelines, while black applicant have the lowest percentage of applications that satisfy the guidelines. 
 * Black has the highest female applicant and married applicant percentage, compared to the other 2 races/ethnicities. 
 
-```{r echo = FALSE, message = FALSE, fig.height =5, fig.width=10 }
+```{r echo = FALSE, message = FALSE }
 kable(
   mld %>% 
     tabyl(race, approve) %>% 
@@ -190,14 +190,65 @@ prop_graph<-function(x, y){
                        panel.grid.major = element_blank(),
                        panel.grid.minor = element_blank(),
                        axis.ticks.x=element_blank(), 
-                       axis.text.x = element_text(angle=90, hjust=1))
+                       axis.text.x = element_text(angle=90, hjust=1)) + coord_flip()
+    
+  
 }
 grid.arrange(
   prop_graph(race, marital),
 prop_graph(race, gender),
 prop_graph(race, approve),
-prop_graph(race, guideline),ncol=4)
+prop_graph(race, guideline),ncol=2)
 
 ```
 
+```{r}
+# Only select individuals who met guidline
+sub1 <- mld %>%
+  filter(guideline == "Yes") %>%
+  group_by(gender, race, approve) %>%
+  summarise(count=n()) %>%
+  group_by(gender,race) %>%
+  mutate(percentage = (count/sum(count))) %>%
+  ggplot(aes(x = gender, y = percentage, fill = approve)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    labs(fill = "Approve") +
+    labs(x = "Gender", y = " Percentage") +
+    theme(text = element_text(size = 20)) + 
+  facet_wrap(~race) +
+  theme_classic()+
+  ggtitle("Percentage of approval if guidlines are met")
+  
+sub1
+```
 
++ If applicants met the guidlines, black and hispanic applicants still have lower approval rate than white applicants.
++ For black candidates, female has higher declined rate than male if guidlines are met. 
++ For white candidates, if guidlines are met, different gender of applicants seems to have same approval rate
+
+
+```{r}
+# Only select individuals who didn't meet guidline
+sub2 <- mld %>%
+  filter(guideline == "No") %>%
+  group_by(gender, race, approve) %>%
+  summarise(count=n()) %>%
+  group_by(gender,race) %>%
+  mutate(percentage = (count/sum(count))) %>%
+  ggplot(aes(x = gender, y = percentage, fill = approve)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    labs(fill = "Approve") +
+    labs(x = "Gender", y = " Percentage") +
+    theme(text = element_text(size = 20)) + 
+  facet_wrap(~race) +
+  theme_classic()+
+  ggtitle("Percentage of approval if guidlines are not met")
+  
+sub2
+
+```
+
++ This graph seems more interesting, if guidlines are not met, hispanic female still have 50% approval rate. 
+   (maybe because of the small sample size)
++ Black candidates still have lowest approval rate. 
++ Female has lower approval rate than male only if she is white.
