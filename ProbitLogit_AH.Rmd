@@ -1,0 +1,290 @@
+---
+title: "Mortgage Market EDA"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r include = FALSE}
+# Clear environment of variables and functions
+rm(list = ls(all = TRUE)) 
+
+# Clear environmet of packages
+if(is.null(sessionInfo()$otherPkgs) == FALSE)lapply(paste("package:", names(sessionInfo()$otherPkgs), sep=""), detach, character.only = TRUE, unload = TRUE)
+```
+
+```{r include = FALSE}
+library(readr)
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+library(gridExtra)
+library(ggridges)
+```
+
+```{r include = FALSE}
+#Load Data 
+mld <- read_csv("MLD Data File-1.csv")
+```
+
+```{r include = FALSE}
+#Data Manipulation 
+names(mld) = c("married", "guideline", "obligation", "black", "hispanic", "male", "approve", "loan") 
+
+mld$male <- as.numeric(mld$male)
+mld$married <- as.numeric(mld$married)
+
+summary(mld)
+```
+
+#Sample Selection Criteria 
+
+* There are 12 NAs in Male and 3 NA in Married. Given our data set of almost 2,000 observation, we decided to remove these observations.
+* There are values of 666 in "Guideline", which is an impossible value. We decided to remove such observations as well. 
+* There are loans that is more than 100% of the purchases price. We decided to remove these observations. 
+
+```{r include = FALSE}
+#Data Manipulation 
+#Remove NAs and impossible values 
+mld<-mld %>% 
+  filter(guideline != 666) %>% 
+  filter(!is.na(married)) %>% 
+  filter(!is.na(male)) %>% 
+  filter(loan<=1)%>% 
+  mutate(loan = loan *100)
+
+#Rename Race 
+mld$race <- ifelse((mld$black == 0) & (mld$hispanic == 0), "Non-Hispanic White", 
+                   ifelse((mld$black == 1) & (mld$hispanic == 0), "Non-Hispanic Black", "Hispanic"))
+
+#Rename Gender
+mld$gender <-ifelse(mld$male == 1, "Male", "Female")
+mld$marital <-ifelse(mld$married== 1, "Married", "Unmarried")
+
+mld <- mld %>% select(-black, -hispanic, -male, -married)
+
+#Change variables levels' name:
+mld$approve <- ifelse(mld$approve == 1, "Yes", "No")
+mld$guideline <- ifelse(mld$guideline == 1, "Yes", "No")
+```
+
+#Descriptive statistics
+
+##All observations analysis 
+
+* There are twice more married applicants than unmarried applicants. 
+* Most of the time, the application is approved (88% approval rate).
+* Most application satisfied guidelines (91% of the time). 
+* Most applicants are male (81% male).
+* Most applicants are non-Hispanic White (85% White). 
+
+
+```{r echo = FALSE}
+count_table <- function(x){
+  x<-enquo(x)
+  kable(
+  mld %>% 
+    tabyl(!!x) %>% 
+    adorn_totals(where = "row") %>%
+      adorn_pct_formatting(digits = 0 ),
+      digits = 2,
+      format = "html",
+      align = c("l","c","c")
+    )%>%
+  kable_styling(full_width = F)
+}
+count_table(marital)
+count_table(gender)
+count_table(race)
+count_table(approve)
+count_table(guideline)
+
+```
+
+
+```{r echo = FALSE}
+#Categorical Variables 
+bar_graph <- function(x, xtitle) { 
+  ggplot(mld, aes(x)) + geom_bar() +
+    theme_bw() + xlab(xtitle)+
+    theme(panel.border = element_blank(), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank())
+}
+grid.arrange(
+bar_graph(mld$marital, "Marital Status"),
+bar_graph(mld$approve, "Approval Rate"),
+bar_graph(mld$guideline, "Guideline"), 
+bar_graph(mld$gender, "Gender"),bar_graph(mld$race, "Race") + coord_flip())
+```
+
+* Most loans is at 70-80% of the item purchase price. 
+* Most other obligations is at 30-40% of the loan-applicant's total income. 
+
+
+```{r echo = FALSE}
+#Continuous Variables
+par(mfrow = c(1,2))
+hist(mld$loan)
+hist(mld$obligation)
+```
+
+##Descriptive statistics by race/ethnicity
+
+* Distribution of loan/purchase price is hightly skewed left. Most people apply for high proportion of loan over price. 
+    + Hispanic and Non-Hispanic Black have higher average loan amount application. 
+* Across races/ethnicities, people have similar percentage of other obligations over income (about 32-35% of income). 
+
+```{r echo = FALSE}
+
+kable(mld %>% group_by(race) %>% 
+  summarize("Loan (mean)" = mean(loan), 
+            "Loan (median)" = median(loan),
+            "Loan (sd)" = sd(loan),
+            "Other Oblig.(mean)" = mean(obligation), 
+            "Other Oblig.(median)" = median(obligation),
+            "Other Oblig. (sd)" = sd(obligation)), 
+  caption = "Descriptive Table for Continuous variables", 
+  digit = 1)%>%
+  kable_styling(full_width = F)
+
+grid.arrange(
+  ggplot(mld, aes(loan)) + geom_density(aes(color = race)),
+  ggplot(mld, aes(obligation)) + geom_density(aes(color = race)))
+
+
+
+grid.arrange(
+ggplot(mld, aes(marital, fill = race)) + geom_bar(position = "dodge"),
+ggplot(mld, aes(approve, fill = race)) + geom_bar(position = "dodge"),
+ggplot(mld, aes(guideline, fill = race)) + geom_bar(position="dodge"))
+  
+```
+
+* Most White applicants have their application accepted (91%). Black people has the lowest acceptance rate (67%).
+* White applicants also have the highest percentage of applications that satisfy the guidelines, while black applicant have the lowest percentage of applications that satisfy the guidelines. 
+* Black has the highest female applicant and married applicant percentage, compared to the other 2 races/ethnicities. 
+
+```{r echo = FALSE, message = FALSE }
+kable(
+  mld %>% 
+    tabyl(race, approve) %>% 
+    adorn_totals(where = "col") %>%
+    adorn_percentages(denominator="row")%>%
+      adorn_pct_formatting(digits = 0 ),
+      digits = 2,
+      format = "html",
+      align = c("l","c","c"), 
+  caption = "Approval Rate by Race/Ethnicity"
+    )%>%
+  kable_styling(full_width = F)
+
+prop_graph<-function(x, y){
+  x<-enquo(x)
+  y<-enquo(y)
+  mld %>% group_by(!!x)%>%
+  count(!!y, !!x) %>% 
+  mutate(prop = prop.table(n)) %>%
+  ggplot(aes(x = !!x, y = prop, fill = !!y))+stat_summary(geom="bar", position = "dodge") + ylab("Probability")+
+    theme_bw() + theme(panel.border = element_blank(), 
+                       panel.grid.major = element_blank(),
+                       panel.grid.minor = element_blank(),
+                       axis.ticks.x=element_blank(), 
+                       axis.text.x = element_text(angle=90, hjust=1)) + coord_flip()
+    
+  
+}
+grid.arrange(
+  prop_graph(race, marital),
+prop_graph(race, gender),
+prop_graph(race, approve),
+prop_graph(race, guideline),ncol=2)
+
+```
+
+```{r}
+# Only select individuals who met guidline
+sub1 <- mld %>%
+  filter(guideline == "Yes") %>%
+  group_by(gender, race, approve) %>%
+  summarise(count=n()) %>%
+  group_by(gender,race) %>%
+  mutate(percentage = (count/sum(count))) %>%
+  ggplot(aes(x = gender, y = percentage, fill = approve)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    labs(fill = "Approve") +
+    labs(x = "Gender", y = " Percentage") +
+    theme(text = element_text(size = 20)) + 
+  facet_wrap(~race) +
+  theme_classic()+
+  ggtitle("Percentage of approval if guidlines are met")
+  
+sub1
+```
+
++ If applicants met the guidlines, black and hispanic applicants still have lower approval rate than white applicants.
++ For black candidates, female has higher declined rate than male if guidlines are met. 
++ For white candidates, if guidlines are met, different gender of applicants seems to have same approval rate
+
+
+```{r}
+# Only select individuals who didn't meet guidline
+sub2 <- mld %>%
+  filter(guideline == "No") %>%
+  group_by(gender, race, approve) %>%
+  summarise(count=n()) %>%
+  group_by(gender,race) %>%
+  mutate(percentage = (count/sum(count))) %>%
+  ggplot(aes(x = gender, y = percentage, fill = approve)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    labs(fill = "Approve") +
+    labs(x = "Gender", y = " Percentage") +
+    theme(text = element_text(size = 20)) + 
+  facet_wrap(~race) +
+  theme_classic()+
+  ggtitle("Percentage of approval if guidlines are not met")
+  
+sub2
+
+```
+
++ This graph seems more interesting, if guidlines are not met, hispanic female still have 50% approval rate. 
+   (maybe because of the small sample size)
++ Black candidates still have lowest approval rate. 
++ Female has lower approval rate than male only if she is white.
+
+	
+guideline`
+obligation`
+approve`
+loan`
+race
+gender
+marital`
+
+
+
+
+# Probit Model
+
+## Overall
+
+```{r}
+mld$approve <- ifelse(mld$approve == "Yes", 1, 0)
+
+mld_hispanic <- filter(mld, race == "Hispanic")
+mld_white <- filter(mld, race == "Non-Hispanic White")
+mld_black <- filter(mld, race == "Non-Hispanic Black")
+```
+
+```{r}
+myprobit <- glm(approve ~ guideline + obligation + loan + marital, family = binomial(link = "probit"), data = mld)
+```
+
+## Hispanic
+
+## Non-Hispanic Black
+
+## Non-Hispanic White
+
+# Logit Model & Odds Ratios
