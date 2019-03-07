@@ -2,10 +2,10 @@
 title: "Mortgage Market EDA"
 author: Andrea Hellebust, Hannah Khuong, Yifan Xiang
 output:
+  pdf_document: default
+  word_document: default
   html_document:
     df_print: paged
-  word_document: default
-  pdf_document: default
   always_allow_html: yes
 ---
 
@@ -153,15 +153,20 @@ kable(mld %>% group_by(race) %>%
   kable_styling(full_width = F)
 
 grid.arrange(
-  ggplot(mld, aes(loan)) + geom_density(aes(color = race)),
-  ggplot(mld, aes(obligation)) + geom_density(aes(color = race)))
+  ggplot(mld, aes(loan)) + geom_density(aes(color = race)) +
+  theme_classic(),
+  ggplot(mld, aes(obligation)) + geom_density(aes(color = race))+
+  theme_classic())
 
 
 
 grid.arrange(
-ggplot(mld, aes(marital, fill = race)) + geom_bar(position = "dodge"),
-ggplot(mld, aes(approve, fill = race)) + geom_bar(position = "dodge"),
-ggplot(mld, aes(guideline, fill = race)) + geom_bar(position="dodge"))
+ggplot(mld, aes(marital, fill = race)) + geom_bar(position = "dodge")+
+  theme_classic(),
+ggplot(mld, aes(approve, fill = race)) + geom_bar(position = "dodge")+
+  theme_classic(),
+ggplot(mld, aes(guideline, fill = race)) + geom_bar(position="dodge")+
+  theme_classic())
   
 ```
 
@@ -206,7 +211,7 @@ prop_graph(race, guideline),ncol=2)
 
 ```
 
-```{r}
+```{r echo = FALSE}
 # Only select individuals who met guidline
 sub1 <- mld %>%
   filter(guideline == "Yes") %>%
@@ -231,7 +236,7 @@ sub1
 + For white candidates, if guidlines are met, different gender of applicants seems to have same approval rate
 
 
-```{r}
+```{r echo= FALSE}
 # Only select individuals who didn't meet guidline
 sub2 <- mld %>%
   filter(guideline == "No") %>%
