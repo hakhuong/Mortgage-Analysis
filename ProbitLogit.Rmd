@@ -1,6 +1,6 @@
 ---
 title: "Mortgage Market EDA"
-Authors: "Andrea, Hannah, and Yifan"
+Author: "Andrea, Hannah, and Yifan"
 output:
   html_document:
     df_print: paged
