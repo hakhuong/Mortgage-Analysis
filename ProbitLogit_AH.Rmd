@@ -56,8 +56,8 @@ mld<-mld %>%
   mutate(loan = loan *100)
 
 #Rename Race 
-mld$race <- ifelse((mld$black == 0) & (mld$hispanic == 0), "Non-Hispanic White", 
-                   ifelse((mld$black == 1) & (mld$hispanic == 0), "Non-Hispanic Black", "Hispanic"))
+mld$race <- ifelse((mld$black == 0) & (mld$hispanic == 0), "White", 
+                   ifelse((mld$black == 1) & (mld$hispanic == 0), "Black", "Hispanic"))
 
 #Rename marital status
 mld$marital <-ifelse(mld$married== 1, "Married", "Unmarried")
@@ -113,7 +113,7 @@ grid.arrange(
 bar_graph(mld$marital, "Marital Status"),
 bar_graph(mld$approve, "Approval Rate"),
 bar_graph(mld$guideline, "Guideline"),
-bar_graph(mld$race, "Race") + coord_flip())
+bar_graph(mld$race, "Race"))
 ```
 
 * Most loans is at 70-80% of the item purchase price. 
@@ -188,7 +188,7 @@ prop_graph<-function(x, y){
                        panel.grid.major = element_blank(),
                        panel.grid.minor = element_blank(),
                        axis.ticks.x=element_blank(), 
-                       axis.text.x = element_text(angle=90, hjust=1)) + coord_flip()
+                       axis.text.x = element_text(angle=90, hjust=1))
     
   
 }
@@ -200,7 +200,7 @@ prop_graph(race, guideline),ncol=2)
 ```
 
 ```{r}
-# Only select individuals who met guidline
+# Only select individuals who met guideline
 sub1 <- mld %>%
   filter(guideline == "Yes") %>%
   group_by(marital, race, approve) %>%
@@ -214,19 +214,19 @@ sub1 <- mld %>%
     theme(text = element_text(size = 20)) + 
   facet_wrap(~race) +
   theme_classic()+
-  ggtitle("Percentage of approval if guidlines are met")
+  ggtitle("Percentage of approval if guidelines are met")
   
 sub1
 ```
 
-+ If applicants met the guidlines, black and hispanic applicants still have lower approval rate than white applicants.
++ If applicants met the guidelines, black and hispanic applicants still have lower approval rate than white applicants.
 
-+ For Hispanic candidates, married applicants have higher declined rate than unmarried if guidlines are met. 
++ For Hispanic candidates, married applicants have higher declined rate than unmarried if guidelines are met. 
 
-+ For white and black candidates, if guidlines are met, unmarried applicants have higher decliend rate.
++ For white and black candidates, if guidelines are met, unmarried applicants have higher decliend rate.
 
 ```{r}
-# Only select individuals who didn't meet guidline
+# Only select individuals who didn't meet guideline
 sub2 <- mld %>%
   filter(guideline == "No") %>%
   group_by(marital, race, approve) %>%
@@ -240,13 +240,13 @@ sub2 <- mld %>%
     theme(text = element_text(size = 20)) + 
   facet_wrap(~race) +
   theme_classic()+
-  ggtitle("Percentage of approval if guidlines are not met")
+  ggtitle("Percentage of approval if guidelines are not met")
   
 sub2
 
 ```
 
-+ If guidlines are not met, white married applicants have highest approval rate.
++ If guidelines are not met, white married applicants have highest approval rate.
 
 + Black candidates still have lowest approval rate. 
 
@@ -257,8 +257,8 @@ sub2
 mld$approve <- ifelse(mld$approve == "Yes", 1, 0)
 
 mld_hispanic <- filter(mld, race == "Hispanic")
-mld_white <- filter(mld, race == "Non-Hispanic White")
-mld_black <- filter(mld, race == "Non-Hispanic Black")
+mld_white <- filter(mld, race == "White")
+mld_black <- filter(mld, race == "Black")
 ```
 
 
@@ -267,7 +267,7 @@ mld_black <- filter(mld, race == "Non-Hispanic Black")
 ## Overall
 
 ```{r}
-probit_all <- glm(approve ~ guideline + obligation + loan + marital, family = binomial(link = "probit"), data = mld)
+probit_all <- glm(approve ~ race + guideline + obligation + loan + marital, family = binomial(link = "probit"), data = mld)
 
 summary(probit_all)
 ```
@@ -310,7 +310,7 @@ Coefficients make intuitive directional sense; marriage could be positive or neg
 
 ## Overall
 ```{r}
-logit <- glm(approve ~ guideline + obligation + loan  + marital, data = mld, family = "binomial")
+logit <- glm(approve ~ race + guideline + obligation + loan  + marital, data = mld, family = "binomial")
 
 summary(logit)
 
