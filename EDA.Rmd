@@ -215,20 +215,22 @@ prop_graph(race, guideline),ncol=2)
 # Only select individuals who met guidline
 sub1 <- mld %>%
   filter(guideline == "Yes") %>%
-  group_by(gender, race, approve) %>%
+  group_by(marital, race, approve) %>%
   summarise(count=n()) %>%
-  group_by(gender,race) %>%
+  group_by(marital,race) %>%
   mutate(percentage = (count/sum(count))) %>%
-  ggplot(aes(x = gender, y = percentage, fill = approve)) +
+  ggplot(aes(x = marital, y = percentage, fill = approve)) +
     geom_bar(stat = "identity", position = "dodge") +
     labs(fill = "Approve") +
     labs(x = "Gender", y = " Percentage") +
     theme(text = element_text(size = 20)) + 
   facet_wrap(~race) +
-  theme_classic()+
-  ggtitle("Percentage of approval if guidlines are met")
-  
+  theme_classic() +
+  theme(text=element_text(family="Times New Roman", face="bold", size=12), 
+        axis.ticks.x = element_blank())+scale_fill_manual(values=c("coral1", "lightskyblue"))
+
 sub1
+ggsave("approval-rate-by-race-marital.png")
 ```
 
 + If applicants met the guidlines, black and hispanic applicants still have lower approval rate than white applicants.
