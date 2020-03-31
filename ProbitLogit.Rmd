@@ -1,9 +1,12 @@
 ---
-title: "Mortgage Market EDA"
+title: "Mortgage Market - EDA, Probit & Logit model"
 Author: "Andrea, Hannah, and Yifan"
-output:
+output: 
   html_document:
+    keep_md: true
+    toc: true
     df_print: paged
+    number_sections: true 
 ---
 
 ```{r include = FALSE}
@@ -40,7 +43,7 @@ mld$married <- as.numeric(mld$married)
 summary(mld)
 ```
 
-#Sample Selection Criteria 
+# Sample Selection Criteria 
 
 * There are 3 NAs in Married. Given our data set of almost 2,000 observation, we decided to remove these observations.
 * There are values of 666 in "Guideline", which is an impossible value. We decided to remove such observations as well. 
@@ -68,9 +71,9 @@ mld$approve <- ifelse(mld$approve == 1, "Yes", "No")
 mld$guideline <- ifelse(mld$guideline == 1, "Yes", "No")
 ```
 
-#Descriptive statistics
+# Descriptive statistics
 
-##All observations analysis 
+## All observations analysis 
 
 * There are twice more married applicants than unmarried applicants. 
 * Most of the time, the application is approved (88% approval rate).
@@ -127,7 +130,7 @@ hist(mld$loan)
 hist(mld$obligation)
 ```
 
-##Descriptive statistics by race/ethnicity
+## Descriptive statistics by race/ethnicity
 
 * Distribution of loan/purchase price is hightly skewed left. Most people apply for high proportion of loan over price. 
     + Hispanic and Non-Hispanic Black have higher average loan amount application. 
